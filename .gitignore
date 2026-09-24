@@ -1,0 +1,23 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider and Visual Studio Code
+.idea/
+.vscode/
+
+# Test results and coverage
+[Tt]est[Rr]esult*/
+*.trx
+coverage/
+coverage*.xml
+
+# Local configuration
+appsettings.Local.json
