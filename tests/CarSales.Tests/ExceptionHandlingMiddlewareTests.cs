@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using CarSales.Api.Middleware;
-using CarSales.Application.Exceptions;
 using Microsoft.AspNetCore.Http;
 
 namespace CarSales.Tests;
@@ -9,18 +8,19 @@ namespace CarSales.Tests;
 public class ExceptionHandlingMiddlewareTests
 {
     [Fact]
-    public async Task InvokeAsync_BusinessException_ReturnsBadRequestWithExceptionMessage()
+    public async Task InvokeAsync_UnexpectedException_ReturnsGenericInternalServerError()
     {
         var context = CreateContext();
         var middleware = new ExceptionHandlingMiddleware(
-            _ => throw new BusinessException("Quantity must be greater than zero."));
+            _ => throw new Exception("unexpected details"));
 
         await middleware.InvokeAsync(context);
 
         var response = await ReadResponseAsync(context);
 
-        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
-        Assert.Contains("Quantity must be greater than zero.", response);
+        Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
+        Assert.Contains("Ocurrió un error interno en el servidor.", response);
+        Assert.DoesNotContain("unexpected details", response);
     }
 
     [Fact]

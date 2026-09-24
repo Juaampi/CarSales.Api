@@ -1,9 +1,10 @@
 using CarSales.Application.DTOs;
-using CarSales.Application.Exceptions;
+using CarSales.Application.Errors;
 using CarSales.Application.Interfaces;
 using CarSales.Application.Services;
 using CarSales.Domain.Entities;
 using CarSales.Domain.Enums;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace CarSales.Tests;
@@ -239,7 +240,9 @@ public class SaleServiceTests
     {
         var service = CreateService(out _);
 
-        var sale = await service.CreateSaleAsync(CreateRequest(model));
+        var result = await service.CreateSaleAsync(CreateRequest(model));
+        Assert.True(result.IsSuccess);
+        var sale = result.Value;
 
         Assert.Equal(expectedPrice, sale.UnitPrice);
         Assert.Equal(expectedPrice, sale.TotalAmount);
@@ -250,7 +253,9 @@ public class SaleServiceTests
     {
         var service = CreateService(out _);
 
-        var sale = await service.CreateSaleAsync(CreateRequest(CarModel.Sedan, 3));
+        var result = await service.CreateSaleAsync(CreateRequest(CarModel.Sedan, 3));
+        Assert.True(result.IsSuccess);
+        var sale = result.Value;
 
         Assert.Equal(8000m, sale.UnitPrice);
         Assert.Equal(24000m, sale.TotalAmount);
@@ -261,7 +266,9 @@ public class SaleServiceTests
     {
         var service = CreateService(out _);
 
-        var sale = await service.CreateSaleAsync(CreateRequest(CarModel.Sport, 10));
+        var result = await service.CreateSaleAsync(CreateRequest(CarModel.Sport, 10));
+        Assert.True(result.IsSuccess);
+        var sale = result.Value;
 
         Assert.Equal(19474m, sale.UnitPrice);
         Assert.Equal(194740m, sale.TotalAmount);
@@ -287,13 +294,15 @@ public class SaleServiceTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public async Task CreateSaleAsync_InvalidQuantity_ThrowsExceptionAndDoesNotPersist(int quantity)
+    public async Task CreateSaleAsync_InvalidQuantity_ReturnsExpectedErrorAndDoesNotPersist(int quantity)
     {
         var service = CreateService(out var repository);
 
-        await Assert.ThrowsAsync<BusinessException>(
-            () => service.CreateSaleAsync(CreateRequest(CarModel.Sedan, quantity)));
+        var result = await service.CreateSaleAsync(CreateRequest(CarModel.Sedan, quantity));
 
+        Assert.True(result.IsFailure);
+        Assert.Equal(Errors.InvalidQuantity.Code, result.Error.Code);
+        Assert.Equal(Errors.InvalidQuantity.Message, result.Error.Message);
         repository.Verify(mock => mock.AddAsync(It.IsAny<Sale>()), Times.Never);
     }
 
@@ -303,8 +312,10 @@ public class SaleServiceTests
         var service = CreateService(out _);
         var beforeCreation = DateTime.UtcNow;
 
-        var sale = await service.CreateSaleAsync(
+        var result = await service.CreateSaleAsync(
             CreateRequest(CarModel.Offroad, 2, DistributionCenter.Center3));
+        Assert.True(result.IsSuccess);
+        var sale = result.Value;
 
         var afterCreation = DateTime.UtcNow;
 
@@ -322,7 +333,7 @@ public class SaleServiceTests
         repository = new Mock<ISaleRepository>();
         repository.Setup(mock => mock.AddAsync(It.IsAny<Sale>())).Returns(Task.CompletedTask);
 
-        return new SaleService(repository.Object);
+        return new SaleService(repository.Object, Mock.Of<ILogger<SaleService>>());
     }
 
     private static CreateSaleRequest CreateRequest(

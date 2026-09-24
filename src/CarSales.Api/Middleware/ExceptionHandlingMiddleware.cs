@@ -1,5 +1,3 @@
-using CarSales.Application.Exceptions;
-
 namespace CarSales.Api.Middleware;
 
 public class ExceptionHandlingMiddleware(RequestDelegate next)
@@ -9,10 +7,6 @@ public class ExceptionHandlingMiddleware(RequestDelegate next)
         try
         {
             await next(context);
-        }
-        catch (BusinessException exception)
-        {
-            await WriteErrorResponseAsync(context, StatusCodes.Status400BadRequest, exception.Message);
         }
         catch (Exception)
         {

@@ -1,11 +1,13 @@
 using CarSales.Application.DTOs;
+using CarSales.Application.Errors;
 using CarSales.Domain.Entities;
+using CSharpFunctionalExtensions;
 
 namespace CarSales.Application.Interfaces;
 
 public interface ISaleService
 {
-    Task<Sale> CreateSaleAsync(CreateSaleRequest request);
+    Task<Result<Sale, Error>> CreateSaleAsync(CreateSaleRequest request);
 
     Task<SalesTotalResponse> GetTotalSalesAsync();
 

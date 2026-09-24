@@ -1,16 +1,26 @@
 using CarSales.Application.DTOs;
-using CarSales.Application.Exceptions;
+using CarSales.Application.Errors;
 using CarSales.Application.Interfaces;
 using CarSales.Domain.Entities;
 using CarSales.Domain.Enums;
+using CSharpFunctionalExtensions;
+using Microsoft.Extensions.Logging;
 
 namespace CarSales.Application.Services;
 
-public class SaleService(ISaleRepository saleRepository) : ISaleService
+public class SaleService(
+    ISaleRepository saleRepository,
+    ILogger<SaleService> logger) : ISaleService
 {
-    public async Task<Sale> CreateSaleAsync(CreateSaleRequest request)
+    public async Task<Result<Sale, Error>> CreateSaleAsync(CreateSaleRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        if (request.Quantity <= 0)
+        {
+            return global::CarSales.Application.Errors.Errors.InvalidQuantity;
+        }
+
         ValidateRequest(request);
 
         var unitPrice = GetUnitPrice(request.Model);
@@ -27,16 +37,28 @@ public class SaleService(ISaleRepository saleRepository) : ISaleService
 
         await saleRepository.AddAsync(sale);
 
-        return sale;
+        logger.LogInformation(
+            "Venta creada. Id: {SaleId}, Modelo: {Model}, Centro: {Center}, Unidades: {Quantity}, Total: {TotalAmount}",
+            sale.Id,
+            sale.Model,
+            sale.DistributionCenter,
+            sale.Quantity,
+            sale.TotalAmount);
+
+        return Result.Success<Sale, Error>(sale);
     }
 
     public async Task<SalesTotalResponse> GetTotalSalesAsync()
     {
         var sales = await saleRepository.GetAllAsync();
 
-        return new SalesTotalResponse(
+        var result = new SalesTotalResponse(
             sales.Sum(sale => sale.Quantity),
             sales.Sum(sale => sale.TotalAmount));
+
+        logger.LogInformation("GetTotalSalesAsync ejecutada.");
+
+        return result;
     }
 
     public async Task<IReadOnlyCollection<SalesByCenterResponse>> GetSalesByCenterAsync()
@@ -51,13 +73,17 @@ public class SaleService(ISaleRepository saleRepository) : ISaleService
                     group.Sum(sale => sale.Quantity),
                     group.Sum(sale => sale.TotalAmount)));
 
-        return Enum.GetValues<DistributionCenter>()
+        var result = Enum.GetValues<DistributionCenter>()
             .Select(center => totalsByCenter.TryGetValue(
                 center,
                 out var total)
                 ? total
                 : new SalesByCenterResponse(center, 0, 0m))
             .ToArray();
+
+        logger.LogInformation("GetSalesByCenterAsync ejecutada.");
+
+        return result;
     }
 
     public async Task<IReadOnlyCollection<SalesPercentageByModelResponse>> GetSalesPercentageByModelAsync()
@@ -70,7 +96,7 @@ public class SaleService(ISaleRepository saleRepository) : ISaleService
                 group => (group.Key.DistributionCenter, group.Key.Model),
                 group => group.Sum(sale => sale.Quantity));
 
-        return Enum.GetValues<DistributionCenter>()
+        var result = Enum.GetValues<DistributionCenter>()
             .SelectMany(center => Enum.GetValues<CarModel>()
                 .Select(model =>
                 {
@@ -82,23 +108,24 @@ public class SaleService(ISaleRepository saleRepository) : ISaleService
                     return new SalesPercentageByModelResponse(center, model, units, percentage);
                 }))
             .ToArray();
+
+        logger.LogInformation("GetSalesPercentageByModelAsync ejecutada.");
+
+        return result;
     }
 
     private static void ValidateRequest(CreateSaleRequest request)
     {
-        if (request.Quantity <= 0)
-        {
-            throw new BusinessException("Quantity must be greater than zero.");
-        }
-
         if (!Enum.IsDefined(request.Model))
         {
-            throw new BusinessException("The car model is invalid.");
+            throw new ArgumentOutOfRangeException(nameof(request.Model), "The car model is invalid.");
         }
 
         if (!Enum.IsDefined(request.DistributionCenter))
         {
-            throw new BusinessException("The distribution center is invalid.");
+            throw new ArgumentOutOfRangeException(
+                nameof(request.DistributionCenter),
+                "The distribution center is invalid.");
         }
     }
 
@@ -110,7 +137,7 @@ public class SaleService(ISaleRepository saleRepository) : ISaleService
             CarModel.SUV => 9500m,
             CarModel.Offroad => 12500m,
             CarModel.Sport => 18200m * 1.07m,
-            _ => throw new BusinessException("The car model is invalid.")
+            _ => throw new ArgumentOutOfRangeException(nameof(model), model, "The car model is invalid.")
         };
     }
 }

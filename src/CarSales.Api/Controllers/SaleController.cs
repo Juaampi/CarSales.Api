@@ -1,5 +1,6 @@
 using CarSales.Application.DTOs;
 using CarSales.Application.Interfaces;
+using CarSales.Api.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSales.Api.Controllers;
@@ -43,8 +44,13 @@ public class SaleController(ISaleService saleService) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<SaleResponse>> CreateSaleAsync(CreateSaleRequest request)
     {
-        var sale = await saleService.CreateSaleAsync(request);
+        var result = await saleService.CreateSaleAsync(request);
 
-        return StatusCode(StatusCodes.Status201Created, SaleResponse.FromSale(sale));
+        if (result.IsFailure)
+        {
+            return BadRequest(new ErrorResponse(result.Error.Code, result.Error.Message));
+        }
+
+        return StatusCode(StatusCodes.Status201Created, SaleResponse.FromSale(result.Value));
     }
 }
