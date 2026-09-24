@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <ExcludeByAttribute>CompilerGeneratedAttribute</ExcludeByAttribute>
+          <Include>[CarSales.Application]*,[CarSales.Domain]*,[CarSales.Infrastructure]*,[CarSales.Api]CarSales.Api.Controllers.*,[CarSales.Api]CarSales.Api.Middleware.*</Include>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
