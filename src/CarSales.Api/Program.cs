@@ -1,5 +1,6 @@
 using CarSales.Application.Interfaces;
 using CarSales.Application.Services;
+using CarSales.Api.Middleware;
 using CarSales.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +26,7 @@ if (app.Environment.IsDevelopment())
 	app.MapOpenApi();
 }
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();

@@ -1,4 +1,5 @@
 using CarSales.Application.DTOs;
+using CarSales.Application.Exceptions;
 using CarSales.Application.Interfaces;
 using CarSales.Application.Services;
 using CarSales.Domain.Entities;
@@ -290,7 +291,7 @@ public class SaleServiceTests
     {
         var service = CreateService(out var repository);
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+        await Assert.ThrowsAsync<BusinessException>(
             () => service.CreateSaleAsync(CreateRequest(CarModel.Sedan, quantity)));
 
         repository.Verify(mock => mock.AddAsync(It.IsAny<Sale>()), Times.Never);

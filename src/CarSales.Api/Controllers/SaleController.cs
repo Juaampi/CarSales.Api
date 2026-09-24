@@ -43,20 +43,8 @@ public class SaleController(ISaleService saleService) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<SaleResponse>> CreateSaleAsync(CreateSaleRequest request)
     {
-        try
-        {
-            var sale = await saleService.CreateSaleAsync(request);
+        var sale = await saleService.CreateSaleAsync(request);
 
-            return StatusCode(StatusCodes.Status201Created, SaleResponse.FromSale(sale));
-        }
-        catch (ArgumentException exception)
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Invalid sale",
-                Detail = exception.Message,
-                Status = StatusCodes.Status400BadRequest
-            });
-        }
+        return StatusCode(StatusCodes.Status201Created, SaleResponse.FromSale(sale));
     }
 }

@@ -1,4 +1,5 @@
 using CarSales.Application.DTOs;
+using CarSales.Application.Exceptions;
 using CarSales.Application.Interfaces;
 using CarSales.Domain.Entities;
 using CarSales.Domain.Enums;
@@ -87,19 +88,17 @@ public class SaleService(ISaleRepository saleRepository) : ISaleService
     {
         if (request.Quantity <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(request.Quantity), "Quantity must be greater than zero.");
+            throw new BusinessException("Quantity must be greater than zero.");
         }
 
         if (!Enum.IsDefined(request.Model))
         {
-            throw new ArgumentOutOfRangeException(nameof(request.Model), "The car model is invalid.");
+            throw new BusinessException("The car model is invalid.");
         }
 
         if (!Enum.IsDefined(request.DistributionCenter))
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(request.DistributionCenter),
-                "The distribution center is invalid.");
+            throw new BusinessException("The distribution center is invalid.");
         }
     }
 
@@ -111,7 +110,7 @@ public class SaleService(ISaleRepository saleRepository) : ISaleService
             CarModel.SUV => 9500m,
             CarModel.Offroad => 12500m,
             CarModel.Sport => 18200m * 1.07m,
-            _ => throw new ArgumentOutOfRangeException(nameof(model), model, "The car model is invalid.")
+            _ => throw new BusinessException("The car model is invalid.")
         };
     }
 }
