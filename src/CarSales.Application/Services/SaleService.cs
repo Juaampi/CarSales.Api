@@ -22,14 +22,14 @@ public class SaleService(
             return global::CarSales.Application.Errors.Errors.InvalidQuantity;
         }
 
-        ValidateRequest(request);
+        var (model, distributionCenter) = ValidateRequest(request);
 
-        var unitPrice = GetUnitPrice(request.Model);
+        var unitPrice = GetUnitPrice(model);
         var sale = new Sale
         {
             Id = Guid.NewGuid(),
-            Model = request.Model,
-            DistributionCenter = request.DistributionCenter,
+            Model = model,
+            DistributionCenter = distributionCenter,
             Quantity = request.Quantity,
             UnitPrice = unitPrice,
             TotalAmount = unitPrice * request.Quantity,
@@ -121,19 +121,22 @@ public class SaleService(
         return result;
     }
 
-    private static void ValidateRequest(CreateSaleRequest request)
+    private static (CarModel Model, DistributionCenter DistributionCenter) ValidateRequest(
+        CreateSaleRequest request)
     {
-        if (!Enum.IsDefined(request.Model))
+        if (request.Model is null || !Enum.IsDefined(request.Model.Value))
         {
             throw new ArgumentOutOfRangeException(nameof(request.Model), "The car model is invalid.");
         }
 
-        if (!Enum.IsDefined(request.DistributionCenter))
+        if (request.DistributionCenter is null || !Enum.IsDefined(request.DistributionCenter.Value))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(request.DistributionCenter),
                 "The distribution center is invalid.");
         }
+
+        return (request.Model.Value, request.DistributionCenter.Value);
     }
 
     private static decimal GetUnitPrice(CarModel model)
