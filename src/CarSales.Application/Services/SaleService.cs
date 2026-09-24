@@ -16,6 +16,7 @@ public class SaleService(
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        // La cantidad es un error esperado del negocio, por eso se devuelve como Result.
         if (request.Quantity <= 0)
         {
             return global::CarSales.Application.Errors.Errors.InvalidQuantity;
@@ -35,6 +36,7 @@ public class SaleService(
             CreatedAt = DateTime.UtcNow
         };
 
+        // El repositorio solo guarda la venta; los precios y el total se resuelven acá.
         await saleRepository.AddAsync(sale);
 
         logger.LogInformation(
@@ -52,6 +54,7 @@ public class SaleService(
     {
         var sales = await saleRepository.GetAllAsync();
 
+        // Las consultas trabajan con los importes que ya fueron calculados al crear la venta.
         var result = new SalesTotalResponse(
             sales.Sum(sale => sale.Quantity),
             sales.Sum(sale => sale.TotalAmount));
@@ -64,6 +67,8 @@ public class SaleService(
     public async Task<IReadOnlyCollection<SalesByCenterResponse>> GetSalesByCenterAsync()
     {
         var sales = await saleRepository.GetAllAsync();
+
+        // Primero agrupamos los centros que tienen ventas y después completamos los que están en cero.
         var totalsByCenter = sales
             .GroupBy(sale => sale.DistributionCenter)
             .ToDictionary(
@@ -90,6 +95,8 @@ public class SaleService(
     {
         var sales = await saleRepository.GetAllAsync();
         var totalUnits = sales.Sum(sale => sale.Quantity);
+
+        // El porcentaje usa como denominador el total general de unidades, no el total del centro.
         var unitsByCombination = sales
             .GroupBy(sale => new { sale.DistributionCenter, sale.Model })
             .ToDictionary(
@@ -136,6 +143,7 @@ public class SaleService(
             CarModel.Sedan => 8000m,
             CarModel.SUV => 9500m,
             CarModel.Offroad => 12500m,
+            // Sport es el único modelo al que se le aplica el impuesto adicional del 7%.
             CarModel.Sport => 18200m * 1.07m,
             _ => throw new ArgumentOutOfRangeException(nameof(model), model, "The car model is invalid.")
         };

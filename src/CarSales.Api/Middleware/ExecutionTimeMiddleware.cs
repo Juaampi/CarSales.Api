@@ -8,6 +8,7 @@ public class ExecutionTimeMiddleware(
 {
     public async Task InvokeAsync(HttpContext context)
     {
+        // El finally garantiza que también midamos requests que terminan con una excepción.
         var stopwatch = Stopwatch.StartNew();
 
         try
