@@ -11,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSwaggerGen(options =>
 {
+	options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "CarSales.Api.xml"));
+
 	options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
 	{
 		Description = "API Key sent in the X-API-Key header.",

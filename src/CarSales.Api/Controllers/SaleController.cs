@@ -9,6 +9,7 @@ namespace CarSales.Api.Controllers;
 [Route("api/[controller]")]
 public class SaleController(ISaleService saleService) : ControllerBase
 {
+    /// <summary>Obtiene el volumen total de unidades e importe de ventas.</summary>
     [HttpGet("total")]
     [ProducesResponseType(typeof(SalesTotalResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<SalesTotalResponse>> GetTotalSalesAsync()
@@ -18,6 +19,7 @@ public class SaleController(ISaleService saleService) : ControllerBase
         return Ok(total);
     }
 
+    /// <summary>Obtiene el volumen de ventas agrupado por centro de distribución.</summary>
     [HttpGet("by-center")]
     [ProducesResponseType(typeof(IReadOnlyCollection<SalesByCenterResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyCollection<SalesByCenterResponse>>> GetSalesByCenterAsync()
@@ -27,6 +29,7 @@ public class SaleController(ISaleService saleService) : ControllerBase
         return Ok(salesByCenter);
     }
 
+    /// <summary>Obtiene el porcentaje de unidades de cada modelo por centro sobre el total general.</summary>
     [HttpGet("percentage-by-model")]
     [ProducesResponseType(
         typeof(IReadOnlyCollection<SalesPercentageByModelResponse>),
@@ -39,6 +42,7 @@ public class SaleController(ISaleService saleService) : ControllerBase
         return Ok(percentages);
     }
 
+    /// <summary>Crea una venta calculando el precio unitario y el importe total.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(SaleResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
