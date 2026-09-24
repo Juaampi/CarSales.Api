@@ -7,7 +7,7 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Swagger queda público para poder explorar y probar la API desde el navegador.
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -32,19 +32,19 @@ builder.Services
 	.AddJsonOptions(options =>
 		options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
-// Singleton keeps in-memory sales for the lifetime of the running application.
+// El Singleton conserva las ventas en memoria mientras la aplicación está levantada.
 builder.Services.AddSingleton<ISaleRepository, SaleRepository>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-
 app.UseSwagger();
 app.UseSwaggerUI();
 
+// El tiempo mide todo el request; la API Key corta accesos inválidos antes del controller.
 app.UseMiddleware<ExecutionTimeMiddleware>();
 app.UseMiddleware<ApiKeyMiddleware>();
+// Las excepciones inesperadas que atraviesan el pipeline se convierten en HTTP 500.
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthorization();
 

@@ -14,6 +14,7 @@ public class ApiKeyMiddleware(
 
     public async Task InvokeAsync(HttpContext context)
     {
+        // Swagger y OpenAPI se dejan públicos para facilitar la documentación del ejercicio.
         if (IsPublicPath(context.Request.Path))
         {
             await next(context);
@@ -25,6 +26,7 @@ public class ApiKeyMiddleware(
 
         if (!IsValidKey(providedKey, configuredKey))
         {
+            // No devolvemos información sobre la key recibida ni la configurada.
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsJsonAsync(new { message = UnauthorizedMessage });

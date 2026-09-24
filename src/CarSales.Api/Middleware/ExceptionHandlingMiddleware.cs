@@ -10,6 +10,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next)
         }
         catch (Exception)
         {
+            // El cliente recibe un mensaje genérico; el detalle interno no sale por la API.
             await WriteErrorResponseAsync(
                 context,
                 StatusCodes.Status500InternalServerError,
