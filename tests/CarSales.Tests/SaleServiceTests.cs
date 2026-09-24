@@ -9,6 +9,52 @@ namespace CarSales.Tests;
 
 public class SaleServiceTests
 {
+    [Fact]
+    public async Task GetTotalSalesAsync_NoSales_ReturnsZeroTotals()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(Array.Empty<Sale>());
+
+        var total = await service.GetTotalSalesAsync();
+
+        Assert.Equal(0, total.TotalUnits);
+        Assert.Equal(0m, total.TotalAmount);
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetTotalSalesAsync_OneSale_ReturnsSaleTotals()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(
+            new[] { CreateSale(CarModel.SUV, DistributionCenter.Center1, 2, 19000m) });
+
+        var total = await service.GetTotalSalesAsync();
+
+        Assert.Equal(2, total.TotalUnits);
+        Assert.Equal(19000m, total.TotalAmount);
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetTotalSalesAsync_MultipleSales_ReturnsAggregatedTotals()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(
+            new[]
+            {
+                CreateSale(CarModel.Sedan, DistributionCenter.Center1, 2, 16000m),
+                CreateSale(CarModel.Sport, DistributionCenter.Center2, 3, 58422m),
+                CreateSale(CarModel.Offroad, DistributionCenter.Center3, 1, 12500m)
+            });
+
+        var total = await service.GetTotalSalesAsync();
+
+        Assert.Equal(6, total.TotalUnits);
+        Assert.Equal(86922m, total.TotalAmount);
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
     [Theory]
     [InlineData(CarModel.Sedan, 8000)]
     [InlineData(CarModel.SUV, 9500)]
@@ -116,6 +162,23 @@ public class SaleServiceTests
             Model = model,
             DistributionCenter = distributionCenter,
             Quantity = quantity
+        };
+    }
+
+    private static Sale CreateSale(
+        CarModel model,
+        DistributionCenter distributionCenter,
+        int quantity,
+        decimal totalAmount)
+    {
+        return new Sale
+        {
+            Id = Guid.NewGuid(),
+            Model = model,
+            DistributionCenter = distributionCenter,
+            Quantity = quantity,
+            TotalAmount = totalAmount,
+            CreatedAt = DateTime.UtcNow
         };
     }
 }

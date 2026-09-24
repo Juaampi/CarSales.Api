@@ -29,6 +29,15 @@ public class SaleService(ISaleRepository saleRepository) : ISaleService
         return sale;
     }
 
+    public async Task<SalesTotalResponse> GetTotalSalesAsync()
+    {
+        var sales = await saleRepository.GetAllAsync();
+
+        return new SalesTotalResponse(
+            sales.Sum(sale => sale.Quantity),
+            sales.Sum(sale => sale.TotalAmount));
+    }
+
     private static void ValidateRequest(CreateSaleRequest request)
     {
         if (request.Quantity <= 0)
