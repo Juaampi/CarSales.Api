@@ -1,12 +1,14 @@
 using CarSales.Application.DTOs;
 using CarSales.Application.Interfaces;
 using CarSales.Api.DTOs;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSales.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion(1.0)]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class SaleController(ISaleService saleService) : ControllerBase
 {
     /// <summary>Obtiene el volumen total de unidades e importe de ventas.</summary>
