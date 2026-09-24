@@ -26,6 +26,7 @@ if (app.Environment.IsDevelopment())
 	app.MapOpenApi();
 }
 
+app.UseMiddleware<ExecutionTimeMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthorization();
 
