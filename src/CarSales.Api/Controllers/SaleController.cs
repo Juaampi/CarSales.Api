@@ -26,6 +26,18 @@ public class SaleController(ISaleService saleService) : ControllerBase
         return Ok(salesByCenter);
     }
 
+    [HttpGet("percentage-by-model")]
+    [ProducesResponseType(
+        typeof(IReadOnlyCollection<SalesPercentageByModelResponse>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyCollection<SalesPercentageByModelResponse>>>
+        GetSalesPercentageByModelAsync()
+    {
+        var percentages = await saleService.GetSalesPercentageByModelAsync();
+
+        return Ok(percentages);
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(SaleResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

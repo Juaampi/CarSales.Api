@@ -59,6 +59,30 @@ public class SaleService(ISaleRepository saleRepository) : ISaleService
             .ToArray();
     }
 
+    public async Task<IReadOnlyCollection<SalesPercentageByModelResponse>> GetSalesPercentageByModelAsync()
+    {
+        var sales = await saleRepository.GetAllAsync();
+        var totalUnits = sales.Sum(sale => sale.Quantity);
+        var unitsByCombination = sales
+            .GroupBy(sale => new { sale.DistributionCenter, sale.Model })
+            .ToDictionary(
+                group => (group.Key.DistributionCenter, group.Key.Model),
+                group => group.Sum(sale => sale.Quantity));
+
+        return Enum.GetValues<DistributionCenter>()
+            .SelectMany(center => Enum.GetValues<CarModel>()
+                .Select(model =>
+                {
+                    var units = unitsByCombination.GetValueOrDefault((center, model));
+                    var percentage = totalUnits == 0
+                        ? 0m
+                        : Math.Round(units * 100m / totalUnits, 2, MidpointRounding.AwayFromZero);
+
+                    return new SalesPercentageByModelResponse(center, model, units, percentage);
+                }))
+            .ToArray();
+    }
+
     private static void ValidateRequest(CreateSaleRequest request)
     {
         if (request.Quantity <= 0)

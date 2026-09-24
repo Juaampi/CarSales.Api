@@ -10,6 +10,113 @@ namespace CarSales.Tests;
 public class SaleServiceTests
 {
     [Fact]
+    public async Task GetSalesPercentageByModelAsync_NoSales_ReturnsAllCombinationsWithZeroValues()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(Array.Empty<Sale>());
+
+        var percentages = await service.GetSalesPercentageByModelAsync();
+
+        Assert.Equal(16, percentages.Count);
+        Assert.All(percentages, percentage =>
+        {
+            Assert.Equal(0, percentage.Units);
+            Assert.Equal(0m, percentage.Percentage);
+        });
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSalesPercentageByModelAsync_OneSale_ReturnsOneHundredPercentForCombination()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(
+            new[] { CreateSale(CarModel.Sedan, DistributionCenter.Center1, 2, 16000m) });
+
+        var percentages = await service.GetSalesPercentageByModelAsync();
+
+        AssertPercentage(percentages, DistributionCenter.Center1, CarModel.Sedan, 2, 100m);
+        AssertZeroPercentagesExcept(
+            percentages,
+            (DistributionCenter.Center1, CarModel.Sedan));
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSalesPercentageByModelAsync_MultipleSales_ReturnsGeneralPercentages()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(
+            new[]
+            {
+                CreateSale(CarModel.Sedan, DistributionCenter.Center1, 2, 16000m),
+                CreateSale(CarModel.SUV, DistributionCenter.Center1, 3, 28500m),
+                CreateSale(CarModel.Sport, DistributionCenter.Center2, 5, 97370m)
+            });
+
+        var percentages = await service.GetSalesPercentageByModelAsync();
+
+        AssertPercentage(percentages, DistributionCenter.Center1, CarModel.Sedan, 2, 20m);
+        AssertPercentage(percentages, DistributionCenter.Center1, CarModel.SUV, 3, 30m);
+        AssertPercentage(percentages, DistributionCenter.Center2, CarModel.Sport, 5, 50m);
+        AssertZeroPercentagesExcept(
+            percentages,
+            (DistributionCenter.Center1, CarModel.Sedan),
+            (DistributionCenter.Center1, CarModel.SUV),
+            (DistributionCenter.Center2, CarModel.Sport));
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSalesPercentageByModelAsync_RepeatedCombination_ConsolidatesUnits()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(
+            new[]
+            {
+                CreateSale(CarModel.Sedan, DistributionCenter.Center1, 2, 16000m),
+                CreateSale(CarModel.Sedan, DistributionCenter.Center1, 3, 24000m)
+            });
+
+        var percentages = await service.GetSalesPercentageByModelAsync();
+
+        AssertPercentage(percentages, DistributionCenter.Center1, CarModel.Sedan, 5, 100m);
+        AssertZeroPercentagesExcept(
+            percentages,
+            (DistributionCenter.Center1, CarModel.Sedan));
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSalesPercentageByModelAsync_NonIntegerPercentages_RoundsToTwoDecimals()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(
+            new[]
+            {
+                CreateSale(CarModel.Sedan, DistributionCenter.Center1, 1, 8000m),
+                CreateSale(CarModel.SUV, DistributionCenter.Center1, 2, 19000m)
+            });
+
+        var percentages = await service.GetSalesPercentageByModelAsync();
+
+        AssertPercentage(percentages, DistributionCenter.Center1, CarModel.Sedan, 1, 33.33m);
+        AssertPercentage(percentages, DistributionCenter.Center1, CarModel.SUV, 2, 66.67m);
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSalesPercentageByModelAsync_Always_RequestsSalesOnce()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(Array.Empty<Sale>());
+
+        await service.GetSalesPercentageByModelAsync();
+
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
     public async Task GetSalesByCenterAsync_NoSales_ReturnsAllCentersWithZeroTotals()
     {
         var service = CreateService(out var repository);
@@ -269,6 +376,36 @@ public class SaleServiceTests
         {
             Assert.Equal(0, total.TotalUnits);
             Assert.Equal(0m, total.TotalAmount);
+        }
+    }
+
+    private static void AssertPercentage(
+        IReadOnlyCollection<SalesPercentageByModelResponse> percentages,
+        DistributionCenter center,
+        CarModel model,
+        int expectedUnits,
+        decimal expectedPercentage)
+    {
+        var percentage = Assert.Single(
+            percentages,
+            item => item.DistributionCenter == center && item.Model == model);
+
+        Assert.Equal(expectedUnits, percentage.Units);
+        Assert.Equal(expectedPercentage, percentage.Percentage);
+    }
+
+    private static void AssertZeroPercentagesExcept(
+        IReadOnlyCollection<SalesPercentageByModelResponse> percentages,
+        params (DistributionCenter Center, CarModel Model)[] combinationsWithSales)
+    {
+        Assert.Equal(16, percentages.Count);
+
+        foreach (var percentage in percentages.Where(item => !combinationsWithSales.Contains((
+                     item.DistributionCenter,
+                     item.Model))))
+        {
+            Assert.Equal(0, percentage.Units);
+            Assert.Equal(0m, percentage.Percentage);
         }
     }
 }

@@ -10,4 +10,6 @@ public interface ISaleService
     Task<SalesTotalResponse> GetTotalSalesAsync();
 
     Task<IReadOnlyCollection<SalesByCenterResponse>> GetSalesByCenterAsync();
+
+    Task<IReadOnlyCollection<SalesPercentageByModelResponse>> GetSalesPercentageByModelAsync();
 }
