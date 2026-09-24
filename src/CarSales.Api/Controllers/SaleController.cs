@@ -17,6 +17,15 @@ public class SaleController(ISaleService saleService) : ControllerBase
         return Ok(total);
     }
 
+    [HttpGet("by-center")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<SalesByCenterResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyCollection<SalesByCenterResponse>>> GetSalesByCenterAsync()
+    {
+        var salesByCenter = await saleService.GetSalesByCenterAsync();
+
+        return Ok(salesByCenter);
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(SaleResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

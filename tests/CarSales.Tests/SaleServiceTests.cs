@@ -10,6 +10,71 @@ namespace CarSales.Tests;
 public class SaleServiceTests
 {
     [Fact]
+    public async Task GetSalesByCenterAsync_NoSales_ReturnsAllCentersWithZeroTotals()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(Array.Empty<Sale>());
+
+        var totals = await service.GetSalesByCenterAsync();
+
+        Assert.Equal(Enum.GetValues<DistributionCenter>(), totals.Select(total => total.DistributionCenter));
+        Assert.All(totals, total =>
+        {
+            Assert.Equal(0, total.TotalUnits);
+            Assert.Equal(0m, total.TotalAmount);
+        });
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSalesByCenterAsync_SalesInOneCenter_ReturnsOnlyThatCenterTotals()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(
+            new[] { CreateSale(CarModel.Sedan, DistributionCenter.Center1, 2, 16000m) });
+
+        var totals = await service.GetSalesByCenterAsync();
+
+        AssertCenterTotal(totals, DistributionCenter.Center1, 2, 16000m);
+        AssertZeroTotalsForCentersExcept(totals, DistributionCenter.Center1);
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSalesByCenterAsync_SalesInMultipleCenters_ReturnsAggregatedTotals()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(
+            new[]
+            {
+                CreateSale(CarModel.Sedan, DistributionCenter.Center1, 2, 16000m),
+                CreateSale(CarModel.Sedan, DistributionCenter.Center1, 3, 24000m),
+                CreateSale(CarModel.SUV, DistributionCenter.Center2, 1, 9500m)
+            });
+
+        var totals = await service.GetSalesByCenterAsync();
+
+        AssertCenterTotal(totals, DistributionCenter.Center1, 5, 40000m);
+        AssertCenterTotal(totals, DistributionCenter.Center2, 1, 9500m);
+        AssertZeroTotalsForCentersExcept(
+            totals,
+            DistributionCenter.Center1,
+            DistributionCenter.Center2);
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSalesByCenterAsync_Always_RequestsSalesOnce()
+    {
+        var service = CreateService(out var repository);
+        repository.Setup(mock => mock.GetAllAsync()).ReturnsAsync(Array.Empty<Sale>());
+
+        await service.GetSalesByCenterAsync();
+
+        repository.Verify(mock => mock.GetAllAsync(), Times.Once);
+    }
+
+    [Fact]
     public async Task GetTotalSalesAsync_NoSales_ReturnsZeroTotals()
     {
         var service = CreateService(out var repository);
@@ -180,5 +245,30 @@ public class SaleServiceTests
             TotalAmount = totalAmount,
             CreatedAt = DateTime.UtcNow
         };
+    }
+
+    private static void AssertCenterTotal(
+        IReadOnlyCollection<SalesByCenterResponse> totals,
+        DistributionCenter center,
+        int expectedUnits,
+        decimal expectedAmount)
+    {
+        var total = Assert.Single(totals, item => item.DistributionCenter == center);
+
+        Assert.Equal(expectedUnits, total.TotalUnits);
+        Assert.Equal(expectedAmount, total.TotalAmount);
+    }
+
+    private static void AssertZeroTotalsForCentersExcept(
+        IReadOnlyCollection<SalesByCenterResponse> totals,
+        params DistributionCenter[] centersWithSales)
+    {
+        Assert.Equal(4, totals.Count);
+
+        foreach (var total in totals.Where(total => !centersWithSales.Contains(total.DistributionCenter)))
+        {
+            Assert.Equal(0, total.TotalUnits);
+            Assert.Equal(0m, total.TotalAmount);
+        }
     }
 }

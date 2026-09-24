@@ -38,6 +38,27 @@ public class SaleService(ISaleRepository saleRepository) : ISaleService
             sales.Sum(sale => sale.TotalAmount));
     }
 
+    public async Task<IReadOnlyCollection<SalesByCenterResponse>> GetSalesByCenterAsync()
+    {
+        var sales = await saleRepository.GetAllAsync();
+        var totalsByCenter = sales
+            .GroupBy(sale => sale.DistributionCenter)
+            .ToDictionary(
+                group => group.Key,
+                group => new SalesByCenterResponse(
+                    group.Key,
+                    group.Sum(sale => sale.Quantity),
+                    group.Sum(sale => sale.TotalAmount)));
+
+        return Enum.GetValues<DistributionCenter>()
+            .Select(center => totalsByCenter.TryGetValue(
+                center,
+                out var total)
+                ? total
+                : new SalesByCenterResponse(center, 0, 0m))
+            .ToArray();
+    }
+
     private static void ValidateRequest(CreateSaleRequest request)
     {
         if (request.Quantity <= 0)

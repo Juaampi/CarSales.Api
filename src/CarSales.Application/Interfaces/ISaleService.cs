@@ -8,4 +8,6 @@ public interface ISaleService
     Task<Sale> CreateSaleAsync(CreateSaleRequest request);
 
     Task<SalesTotalResponse> GetTotalSalesAsync();
+
+    Task<IReadOnlyCollection<SalesByCenterResponse>> GetSalesByCenterAsync();
 }
